@@ -1,13 +1,20 @@
+// Bird
 let birdY = 250;
 let birdX = 80;
 let birdVelocity = 0;
-
+let wingH = 30;
+let canJump = true;
+// Pipes
 let pipeTop;
 let pipeBottom;
 let pipeY = 100;
 let distanceX = 400;
 let pipeMovement = 4;
-let textAlpha = 255;
+// Parallax
+let cloudsX = 300;
+let mountainsX = 0;
+let groundX = 0;
+
 
 const gameStates = Object.freeze({
   START: "Start",
@@ -20,6 +27,7 @@ let frames = 0;
 
 let highscore = 0;
 
+let textAlpha = 1.0;
 let cSteps = ["3", "2", "1", "GO!"];
 let second = -1;
 let minute = 0;
@@ -32,19 +40,77 @@ function setup() {
 }
 
 function draw() {
-  background("lightblue");
-  birdLogic()
+  ParalaxLogic()
+  birdLogic();
   keyPressed();
   if (second >= 3) {
     createPipe(distanceX)
   }
-  timeCalc(frames++)
-  scoreLogic()
+  timeCalc(frames++);
+  scoreLogic();
+}
+
+function ParalaxLogic() {
+  background("lightblue");
+  if (gameState !== gameStates.GAMEOVER) {
+    cloudsX -= 0.5;
+    mountainsX -= 1.2;
+    groundX -= 3;
+  }
+
+  // CLOUDS ------------------------
+  
+  if (cloudsX < -100) cloudsX = width + 50;
+  fill(255, 255, 255, 255);
+  ellipse(cloudsX, 100, 60, 40);
+  ellipse(cloudsX + 25, 95, 50, 35);
+  ellipse(cloudsX - 20, 105, 45, 30);
+
+  // MOUNTAINS ---------------------
+  
+  if (mountainsX <= -250) mountainsX = 0;
+  fill(100, 149, 237);
+  for (let x = mountainsX; x < width + 200; x += 250) {
+    triangle(x, height, x + 100, 220, x + 200, height);
+    triangle(x + 80, height, x + 180, 260, x + 280, height);
+  }
+  // GROUND ------------------------
+  
+  if (groundX <= -40) groundX = 0;
+  fill(110, 190, 70);
+  rect(0, height - 30, width, 30);
+  fill(85, 160, 50);
+  for (let x = groundX; x < width + 40; x += 40) {
+    rect(x, height - 30, 20, 10);
+  }
 }
 
 function birdLogic() {
-  fill("yellow")
-  circle(birdX, birdY, 50);
+  push();
+  translate(birdX, birdY);
+  let bodyAngle = map(birdVelocity, -10, 12, -0.5, 0.8, true)
+  rotate(bodyAngle)
+  // body
+  fill("yellow");
+  ellipse(0, 0, 50, 50);
+  // eye
+  fill(255);
+  ellipse(8, -6, 10, 10);
+  fill(0);
+  ellipse(10, -6, 4, 4);
+  // Beak
+  fill("orange");
+  ellipse(25, 2, 18, 8);
+  push();
+  // wing
+  translate(-6, 2);
+  let wingAngle = map(birdVelocity, -10, 10, -0.6, 0.6, true);
+  rotate(wingAngle);
+  fill(255, 255, 220);
+  ellipse(0, 0, 18, 10);
+  pop();
+  pop();
+
   if (gameState === gameStates.GAMEOVER) return;
   if (birdY > height && second >= 3) {
       birdY = height;
@@ -56,7 +122,7 @@ function birdLogic() {
 }
 
 function keyPressed() {
-  if (key === " " || key === "MouseButton") {
+  if ((key === " " || key === "mouseButton") && canJump) {
     birdVelocity = -10;
   }
 }
@@ -83,8 +149,8 @@ function createPipe(pipeX = 50){
   rect(pipeX + 45, -40, 4, pipeY - 10)
   rect(pipeX + 45, pipeY + 160, 4, height - (pipeY + 130))
 
-  let inPipeGap = (pipeX <= birdX + 15 && pipeX >= birdX - 15);
-  if (((birdY < pipeY - 50 || birdY > pipeY + 150) && inPipeGap) || gameState === gameStates.GAMEOVER) {
+  let inPipe = (pipeX <= birdX + 15 && pipeX + 40 >= birdX - 15);
+  if (((birdY < pipeY - 25 || birdY > pipeY + 125) && inPipe) || gameState === gameStates.GAMEOVER) {
     triggerDeath()
     return;
   }
@@ -98,7 +164,9 @@ function createPipe(pipeX = 50){
 }
 
 function timeCalc(_frames) {
+  textAlpha -= 0.03
   if (_frames % 60 === 0 && gameState === gameStates.START) {
+    textAlpha = 1.0
     second++
     if (second === 60) {
       minute++;
@@ -108,9 +176,9 @@ function timeCalc(_frames) {
     second = String(second).padStart(2, '0') 
   }
   if (second <= 3 && gameState === gameStates.START) {
-    strokeWeight(4)
-    stroke("black")
-    fill("white", textAlpha)
+    strokeWeight(0)
+    // stroke("black")
+    fill(`rgb(0, 0, 0, ${textAlpha})`)
     textAlign(CENTER, CENTER)
     textSize(64)
     let step = cSteps[int(second)]
